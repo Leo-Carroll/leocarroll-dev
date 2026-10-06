@@ -30,8 +30,6 @@ body {
     margin: 0;
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
-    background-image: linear-gradient(rgba(224, 233, 223, 0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(224, 233, 223, 0.018) 1px, transparent 1px);
-    background-size: 48px 48px;
 }
 
 a {
@@ -135,15 +133,6 @@ section[id] {
     min-height: 640px;
     margin: 0 auto;
     padding: 76px 7.1% 100px;
-}
-
-.hero::before {
-    position: absolute;
-    z-index: 0;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 49.9%, rgba(131, 201, 138, 0.045) 50%, transparent 50.1%);
-    content: "";
-    pointer-events: none;
 }
 
 .hero-copy {
