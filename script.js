@@ -42,6 +42,11 @@ if (particleCanvas) {
         const particleColor = palette.getPropertyValue("--accent").trim();
         const secondaryParticleColor = palette.getPropertyValue("--particle-secondary").trim();
         const connectionColor = palette.getPropertyValue("--muted").trim();
+        const connectionDistance = 180;
+        const connectionDistanceSquared = connectionDistance * connectionDistance;
+        const connectionAlphaBuckets = Array.from({ length: 8 }, () => []);
+        const pointerAlphaBuckets = Array.from({ length: 8 }, () => []);
+        const particleGroups = [[], []];
         let particles = [];
         let viewportWidth = 0;
         let viewportHeight = 0;
@@ -52,41 +57,103 @@ if (particleCanvas) {
 
         const drawParticles = () => {
             particleContext.clearRect(0, 0, viewportWidth, viewportHeight);
+            connectionAlphaBuckets.forEach((bucket) => { bucket.length = 0; });
+            pointerAlphaBuckets.forEach((bucket) => { bucket.length = 0; });
+            particleGroups.forEach((group) => { group.length = 0; });
+
+            const grid = new Map();
+            const gridColumns = Math.ceil(viewportWidth / connectionDistance);
 
             particles.forEach((particle, index) => {
-                for (let otherIndex = index + 1; otherIndex < particles.length; otherIndex += 1) {
-                    const otherParticle = particles[otherIndex];
-                    const distance = Math.hypot(particle.x - otherParticle.x, particle.y - otherParticle.y);
+                const column = Math.floor(particle.x / connectionDistance);
+                const row = Math.floor(particle.y / connectionDistance);
+                const cellKey = row * gridColumns + column;
+                let cell = grid.get(cellKey);
 
-                    if (distance < 180) {
-                        particleContext.beginPath();
-                        particleContext.moveTo(particle.x, particle.y);
-                        particleContext.lineTo(otherParticle.x, otherParticle.y);
-                        particleContext.strokeStyle = connectionColor;
-                        particleContext.globalAlpha = (1 - distance / 180) * 0.22;
-                        particleContext.lineWidth = 0.85;
-                        particleContext.stroke();
+                if (!cell) {
+                    cell = [];
+                    grid.set(cellKey, cell);
+                }
+                cell.push(index);
+                particleGroups[index % 7 === 0 ? 1 : 0].push(particle);
+            });
+
+            particles.forEach((particle, index) => {
+                const column = Math.floor(particle.x / connectionDistance);
+                const row = Math.floor(particle.y / connectionDistance);
+
+                for (let nearbyRow = Math.max(0, row - 1); nearbyRow <= row + 1; nearbyRow += 1) {
+                    for (let nearbyColumn = Math.max(0, column - 1); nearbyColumn <= Math.min(gridColumns - 1, column + 1); nearbyColumn += 1) {
+                        const cell = grid.get(nearbyRow * gridColumns + nearbyColumn);
+                        if (!cell) continue;
+
+                        cell.forEach((otherIndex) => {
+                            if (otherIndex <= index) return;
+                            const otherParticle = particles[otherIndex];
+                            const deltaX = particle.x - otherParticle.x;
+                            const deltaY = particle.y - otherParticle.y;
+                            const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+                            if (distanceSquared >= connectionDistanceSquared) return;
+
+                            const distance = Math.sqrt(distanceSquared);
+                            const alpha = (1 - distance / connectionDistance) * 0.22;
+                            const bucketIndex = Math.min(7, Math.floor(alpha / 0.22 * 8));
+                            connectionAlphaBuckets[bucketIndex].push(
+                                particle.x, particle.y, otherParticle.x, otherParticle.y
+                            );
+                        });
                     }
                 }
 
                 if (pointer.active && !reducedMotion.matches) {
-                    const pointerDistance = Math.hypot(particle.x - pointer.x, particle.y - pointer.y);
+                    const deltaX = particle.x - pointer.x;
+                    const deltaY = particle.y - pointer.y;
+                    const distanceSquared = deltaX * deltaX + deltaY * deltaY;
 
-                    if (pointerDistance < 190) {
-                        particleContext.beginPath();
-                        particleContext.moveTo(particle.x, particle.y);
-                        particleContext.lineTo(pointer.x, pointer.y);
-                        particleContext.strokeStyle = secondaryParticleColor;
-                        particleContext.globalAlpha = (1 - pointerDistance / 190) * 0.42;
-                        particleContext.lineWidth = 1;
-                        particleContext.stroke();
+                    if (distanceSquared < 190 * 190) {
+                        const distance = Math.sqrt(distanceSquared);
+                        const alpha = (1 - distance / 190) * 0.42;
+                        const bucketIndex = Math.min(7, Math.floor(alpha / 0.42 * 8));
+                        pointerAlphaBuckets[bucketIndex].push(particle.x, particle.y, pointer.x, pointer.y);
                     }
                 }
+            });
 
+            particleContext.strokeStyle = connectionColor;
+            particleContext.lineWidth = 0.85;
+            connectionAlphaBuckets.forEach((bucket, index) => {
+                if (!bucket.length) return;
                 particleContext.beginPath();
-                particleContext.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-                particleContext.fillStyle = index % 7 === 0 ? secondaryParticleColor : particleColor;
-                particleContext.globalAlpha = index % 7 === 0 ? 0.82 : 0.62;
+                for (let point = 0; point < bucket.length; point += 4) {
+                    particleContext.moveTo(bucket[point], bucket[point + 1]);
+                    particleContext.lineTo(bucket[point + 2], bucket[point + 3]);
+                }
+                particleContext.globalAlpha = (index + 0.5) / 8 * 0.22;
+                particleContext.stroke();
+            });
+
+            particleContext.strokeStyle = secondaryParticleColor;
+            particleContext.lineWidth = 1;
+            pointerAlphaBuckets.forEach((bucket, index) => {
+                if (!bucket.length) return;
+                particleContext.beginPath();
+                for (let point = 0; point < bucket.length; point += 4) {
+                    particleContext.moveTo(bucket[point], bucket[point + 1]);
+                    particleContext.lineTo(bucket[point + 2], bucket[point + 3]);
+                }
+                particleContext.globalAlpha = (index + 0.5) / 8 * 0.42;
+                particleContext.stroke();
+            });
+
+            particleGroups.forEach((group, index) => {
+                if (!group.length) return;
+                particleContext.beginPath();
+                group.forEach((particle) => {
+                    particleContext.moveTo(particle.x + particle.radius, particle.y);
+                    particleContext.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                });
+                particleContext.fillStyle = index === 1 ? secondaryParticleColor : particleColor;
+                particleContext.globalAlpha = index === 1 ? 0.82 : 0.62;
                 particleContext.fill();
             });
 
@@ -110,8 +177,8 @@ if (particleCanvas) {
                 });
             } else {
                 const particleCount = coarsePointer
-                    ? Math.min(60, Math.max(36, Math.round(viewportWidth * viewportHeight / 16000)))
-                    : Math.min(220, Math.max(60, Math.round(viewportWidth * viewportHeight / 9000)));
+                    ? Math.min(40, Math.max(24, Math.round(viewportWidth * viewportHeight / 24000)))
+                    : Math.min(120, Math.max(40, Math.round(viewportWidth * viewportHeight / 18000)));
                 particles = Array.from({ length: particleCount }, () => ({
                     x: Math.random() * viewportWidth,
                     y: Math.random() * viewportHeight,
@@ -139,9 +206,10 @@ if (particleCanvas) {
                     if (pointer.active && !reducedMotion.matches) {
                         const deltaX = particle.x - pointer.x;
                         const deltaY = particle.y - pointer.y;
-                        const distance = Math.hypot(deltaX, deltaY);
+                        const distanceSquared = deltaX * deltaX + deltaY * deltaY;
 
-                        if (distance > 0 && distance < 190) {
+                        if (distanceSquared > 0 && distanceSquared < 190 * 190) {
+                            const distance = Math.sqrt(distanceSquared);
                             const force = (1 - distance / 190) * 0.025;
                             particle.velocityX += deltaX / distance * force;
                             particle.velocityY += deltaY / distance * force;
@@ -150,8 +218,9 @@ if (particleCanvas) {
 
                     particle.velocityX *= 0.995;
                     particle.velocityY *= 0.995;
-                    const speed = Math.hypot(particle.velocityX, particle.velocityY);
-                    if (speed > 0.75) {
+                    const speedSquared = particle.velocityX * particle.velocityX + particle.velocityY * particle.velocityY;
+                    if (speedSquared > 0.75 * 0.75) {
+                        const speed = Math.sqrt(speedSquared);
                         particle.velocityX = particle.velocityX / speed * 0.75;
                         particle.velocityY = particle.velocityY / speed * 0.75;
                     }
