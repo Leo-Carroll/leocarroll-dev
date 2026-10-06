@@ -48,6 +48,7 @@ if (particleCanvas) {
         let animationFrame = 0;
         let previousFrame = 0;
         const pointer = { x: 0, y: 0, active: false };
+        const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
         const drawParticles = () => {
             particleContext.clearRect(0, 0, viewportWidth, viewportHeight);
@@ -93,21 +94,32 @@ if (particleCanvas) {
         };
 
         const resizeParticles = () => {
-            const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+            const previousWidth = viewportWidth;
+            const previousHeight = viewportHeight;
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, coarsePointer ? 1 : 1.5);
             viewportWidth = window.innerWidth;
             viewportHeight = window.innerHeight;
             particleCanvas.width = Math.round(viewportWidth * pixelRatio);
             particleCanvas.height = Math.round(viewportHeight * pixelRatio);
             particleContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-            const particleCount = Math.min(220, Math.max(60, Math.round(viewportWidth * viewportHeight / 9000)));
-            particles = Array.from({ length: particleCount }, () => ({
-                x: Math.random() * viewportWidth,
-                y: Math.random() * viewportHeight,
-                radius: Math.random() * 1.8 + 1,
-                velocityX: (Math.random() - 0.5) * 0.16,
-                velocityY: (Math.random() - 0.5) * 0.16
-            }));
+            if (particles.length && previousWidth && previousHeight) {
+                particles.forEach((particle) => {
+                    particle.x = particle.x / previousWidth * viewportWidth;
+                    particle.y = particle.y / previousHeight * viewportHeight;
+                });
+            } else {
+                const particleCount = coarsePointer
+                    ? Math.min(60, Math.max(36, Math.round(viewportWidth * viewportHeight / 16000)))
+                    : Math.min(220, Math.max(60, Math.round(viewportWidth * viewportHeight / 9000)));
+                particles = Array.from({ length: particleCount }, () => ({
+                    x: Math.random() * viewportWidth,
+                    y: Math.random() * viewportHeight,
+                    radius: Math.random() * 1.8 + 1,
+                    velocityX: (Math.random() - 0.5) * 0.16,
+                    velocityY: (Math.random() - 0.5) * 0.16
+                }));
+            }
         };
 
         const stopParticles = () => {
@@ -168,7 +180,7 @@ if (particleCanvas) {
             drawParticles();
         });
         window.addEventListener("pointermove", (event) => {
-            if (reducedMotion.matches) return;
+            if (coarsePointer || reducedMotion.matches) return;
             pointer.x = event.clientX;
             pointer.y = event.clientY;
             pointer.active = true;
