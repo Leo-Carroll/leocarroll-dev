@@ -53,7 +53,7 @@ a:focus-visible {
     height: 3px;
     background: var(--accent);
     pointer-events: none;
-    transform: scaleX(var(--scroll-progress, 0));
+    transform: scaleX(0);
     transform-origin: left;
 }
 
@@ -74,7 +74,6 @@ a:focus-visible {
     height: 86px;
     border-bottom: 1px solid var(--line);
     background: rgba(16, 27, 21, 0.94);
-    backdrop-filter: blur(14px);
 }
 
 section[id] {

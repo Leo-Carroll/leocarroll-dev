@@ -41,22 +41,32 @@ document.querySelectorAll("[data-reveal-group]").forEach((group) => {
 
 if (progressBar) {
     let progressPending = false;
+    let scrollableHeight = 0;
 
     const updateProgress = () => {
         if (progressPending) return;
         progressPending = true;
 
         requestAnimationFrame(() => {
-            const scrollableHeight = root.scrollHeight - window.innerHeight;
             const progress = scrollableHeight > 0 ? window.scrollY / scrollableHeight : 0;
-            root.style.setProperty("--scroll-progress", progress);
+            progressBar.style.transform = `scaleX(${progress})`;
             progressPending = false;
         });
     };
 
+    const updateScrollRange = () => {
+        scrollableHeight = Math.max(root.scrollHeight - window.innerHeight, 0);
+        updateProgress();
+    };
+
     window.addEventListener("scroll", updateProgress, { passive: true });
-    window.addEventListener("resize", updateProgress);
-    updateProgress();
+    window.addEventListener("resize", updateScrollRange);
+
+    if ("ResizeObserver" in window) {
+        new ResizeObserver(updateScrollRange).observe(document.body);
+    }
+
+    updateScrollRange();
 }
 
 const navigationLinks = document.querySelectorAll('.site-header nav a[href^="#"]');
