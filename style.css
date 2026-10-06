@@ -1,11 +1,11 @@
 :root {
     color-scheme: dark;
-    --paper: #101b15;
+    --paper: #051c0e;
     --ink: #e0e9df;
     --muted: #a4b6a5;
     --line: #34483a;
     --accent: #83c98a;
-    --surface: #142119;
+    --surface: #00210d;
     --surface-raised: #20352a;
     --ticker-muted: #647a69;
     --mono: "JetBrainsMono NF", "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
