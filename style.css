@@ -8,7 +8,6 @@
     --surface: #142119;
     --surface-raised: #20352a;
     --ticker-muted: #647a69;
-    --particle-secondary: #b7d987;
     --mono: "JetBrainsMono NF", "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
     --sans: "JetBrainsMono NF", "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
 }
@@ -33,16 +32,6 @@ body {
     -webkit-font-smoothing: antialiased;
     background-image: linear-gradient(rgba(224, 233, 223, 0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(224, 233, 223, 0.018) 1px, transparent 1px);
     background-size: 48px 48px;
-}
-
-.particle-background {
-    position: fixed;
-    z-index: -1;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.9;
-    pointer-events: none;
 }
 
 a {
