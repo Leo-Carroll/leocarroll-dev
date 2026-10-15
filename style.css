@@ -677,12 +677,6 @@ section[id] {
     line-height: 1.3;
 }
 
-.tag-list .tag-featured {
-    border-color: var(--accent);
-    background: var(--accent);
-    color: var(--surface);
-}
-
 .projects {
     padding-top: 84px;
     padding-bottom: 104px;
